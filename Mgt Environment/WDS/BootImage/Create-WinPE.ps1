@@ -21,5 +21,3 @@ Set-Content -Value $startnet -Path "D:\WinPe_amd64\mount\windows\system32\startn
 #Back in Deployment and Imaging Tools Environment (cmdlet) window
 Dism /unmount-image /mountdir:D:\winpe_amd64\mount /commit
 MakeWinPEMedia /ISO D:\WinPE_amd64 D:\WinPE_amd64\WinPE_amd64.iso
-
-

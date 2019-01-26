@@ -1,52 +1,51 @@
-﻿if(-not $scriptLog) {
+﻿if (-not $scriptLog) {
     $scriptLog = "$env:SystemDrive\Logs-MASLAB\Script.$(Get-Date -Format yyyy-MM-dd.hh-mm-ss).log"
     $null = New-Item -Path $scriptLog -ItemType File -Force
 }
 
 function Write-VerboseLog {
-  [CmdletBinding()]
-  param ( 
-    [Parameter(ValueFromPipeline,ValueFromPipelineByPropertyName)]
-    [String] $Message
-  )
+    [CmdletBinding()]
+    param ( 
+        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [String] $Message
+    )
 
-  $ErrorActionPreference = 'Stop'
+    $ErrorActionPreference = 'Stop'
 
-  "Verbose: $Message" | Out-File $scriptLog -Append
-  Write-Verbose $Message -Verbose
+    "Verbose: $Message" | Out-File $scriptLog -Append
+    Write-Verbose $Message -Verbose
 }
 
 function Write-WarningLog {
-  [CmdletBinding()]
-  param ( 
-    [Parameter(ValueFromPipeline,ValueFromPipelineByPropertyName)]
-    [String] $Message
-  )
+    [CmdletBinding()]
+    param ( 
+        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [String] $Message
+    )
 
-  $ErrorActionPreference = 'Stop'
+    $ErrorActionPreference = 'Stop'
 
-  "Warning: $Message" | Out-File $scriptLog -Append
-  Write-Warning $Message
+    "Warning: $Message" | Out-File $scriptLog -Append
+    Write-Warning $Message
 }
 
 function Write-TerminatingErrorLog {
-  [CmdletBinding()] 
-  param ( 
-    [Parameter(ValueFromPipeline,ValueFromPipelineByPropertyName)]
-    [object] $Message
-  )
+    [CmdletBinding()] 
+    param ( 
+        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [object] $Message
+    )
 
-  $ErrorActionPreference = 'Stop'
+    $ErrorActionPreference = 'Stop'
 
-  # Write Error: line seperately otherwise out message will not contain stack trace
-  "Error:" | Out-File $scriptLog -Append
-  $Message | Out-File $scriptLog -Append
+    # Write Error: line seperately otherwise out message will not contain stack trace
+    "Error:" | Out-File $scriptLog -Append
+    $Message | Out-File $scriptLog -Append
 
-  throw $Message
+    throw $Message
 }
-
 function Write-LogMessage {
-  <#
+    <#
       .SYNOPSIS
       Writes a log message in the console.
       .DESCRIPTION
@@ -58,39 +57,39 @@ function Write-LogMessage {
       Write-LogMessage -Message "My other message."
       This command writes "My other Message" to the console output.
   #>
-  [cmdletbinding()]
-  param
-  (
-    [string]$SystemName = $env:COMPUTERNAME,
-    [object]$Message,
-	$logPath = $scriptLog,
-	[string]$MessageType
-  )
+    [cmdletbinding()]
+    param
+    (
+        [string]$SystemName = $env:COMPUTERNAME,
+        [object]$Message,
+        $logPath = $scriptLog,
+        [string]$MessageType
+    )
 
-  BEGIN {}
-  PROCESS {
-    Write-Verbose "Writing log message"
-    #write-host (Get-Date).ToShortTimeString() -ForegroundColor Cyan -NoNewline
-    #write-host ' - [' -ForegroundColor White -NoNewline
-    #write-host $systemName -ForegroundColor Yellow -NoNewline
-    #write-Host "]::$($message)" -ForegroundColor White
-	switch ($MessageType) {
-		"Error" {
-			Write-TerminatingErrorLog -Message $Message
-		}
-		"Warning" {
-			Write-WarningLog -Message $Message
-		}
-		"Verbose" {
-			Write-VerboseLog -Message $Message
-		}
-		default {
-			#Add-Content -Path $logPath "$((Get-Date).ToShortTimeString()) - [$SystemName]::$($Message)"
-			Write-Output ('{0} - [{1}]::{2}' -f ((Get-Date).ToShortTimeString()),$systemName,$message)
-		}
-	}
-  }
-  END {}
+    BEGIN {}
+    PROCESS {
+        Write-Verbose "Writing log message"
+        #write-host (Get-Date).ToShortTimeString() -ForegroundColor Cyan -NoNewline
+        #write-host ' - [' -ForegroundColor White -NoNewline
+        #write-host $systemName -ForegroundColor Yellow -NoNewline
+        #write-Host "]::$($message)" -ForegroundColor White
+        switch ($MessageType) {
+            "Error" {
+                Write-TerminatingErrorLog -Message $Message
+            }
+            "Warning" {
+                Write-WarningLog -Message $Message
+            }
+            "Verbose" {
+                Write-VerboseLog -Message $Message
+            }
+            default {
+                #Add-Content -Path $logPath "$((Get-Date).ToShortTimeString()) - [$SystemName]::$($Message)"
+                Write-Output ('{0} - [{1}]::{2}' -f ((Get-Date).ToShortTimeString()), $systemName, $message)
+            }
+        }
+    }
+    END {}
 }
 
 function Reset-PhysicalNode {
@@ -125,29 +124,29 @@ function Wait-BaremetalDeployment {
     Write-LogMessage -Message "[$serverIpAddress] - Waiting for baremetal deployment to finish."
     do {
         if (Test-Connection $serverIpAddress -Quiet -Count 1) {
-                $session = $null
-                try {
-                    $session = New-PSSession -ComputerName $serverIpAddress -Credential $credential -ErrorAction SilentlyContinue
-                } catch {
-                    if ($session) {
-                        Write-LogMessage -Message "Caught exception after session to new OS was created: $_"
-                        Remove-PSSession $session -ErrorAction SilentlyContinue
-                        $session = $null
-                    }
-                    $global:error.RemoveAt(0)
+            $session = $null
+            try {
+                $session = New-PSSession -ComputerName $serverIpAddress -Credential $credential -ErrorAction SilentlyContinue
+            }
+            catch {
+                if ($session) {
+                    Write-LogMessage -Message "Caught exception after session to new OS was created: $_"
+                    Remove-PSSession $session -ErrorAction SilentlyContinue
+                    $session = $null
+                }
+                $global:error.RemoveAt(0)
+            }
+
+            if ($session) {
+                $isNewDeployment = Invoke-Command -Session $session {
+                    Test-Path "$env:SystemDrive\SetupComplete.txt"
                 }
 
-                if ($session) {
-                    $isNewDeployment = Invoke-Command -Session $session {
-                        Test-Path "$env:SystemDrive\SetupComplete.txt"
-                    }
-
-                    if ($isNewDeployment)
-                    {
-                        Write-LogMessage -Message "[$serverIpAddress] - Finished the OS deployment."
-                    }
+                if ($isNewDeployment) {
+                    Write-LogMessage -Message "[$serverIpAddress] - Finished the OS deployment."
                 }
             }
+        }
 
 
         if ($isNewDeployment) { break }
@@ -158,11 +157,11 @@ function Wait-BaremetalDeployment {
 
     if ($isNewDeployment) {
         Write-LogMessage -Message "[$serverIpAddress] - Bare metal deployment has completed."
-    } else {
+    }
+    else {
         Write-LogMessage -Message "[$serverIpAddress] - Bare metal deployment has completed." -MessageType "Error"
     }
 }
-
 function Start-InstallAzureStack {
     [cmdletbinding()]
     param(
@@ -179,7 +178,7 @@ function Start-InstallAzureStack {
     Write-LogMessage -Message "[$serverIpAddress] - Prepare host for Azure Stack installation."
     Write-LogMessage -Message "[$serverIpAddress] - Start Azure Stack installation has been triggered."
     Invoke-Command -ScriptBlock {
-    param($LocalAdminCredential,$AADAdminCredential,$AADDelegatedAdminCredential,$AADTenantCredential,$AADTenant,$serverIpAddress,$Gateway,$DisconnectedMode)
+        param($LocalAdminCredential, $AADAdminCredential, $AADDelegatedAdminCredential, $AADTenantCredential, $AADTenant, $serverIpAddress, $Gateway, $DisconnectedMode)
         $LocalAdminPassword = $LocalAdminCredential.GetNetworkCredential().Password
         $AADAdminUser = $AADAdminCredential.UserName
         $AADAdminPassword = $AADAdminCredential.GetNetworkCredential().Password
@@ -196,15 +195,16 @@ $aadcred = New-Object System.Management.Automation.PSCredential ('{2}', $aadpass
 $InfraAzureDirectoryTenantName = '{3}'
 
 '@ -f $LocalAdminPassword, $AADAdminPassword, $AADAdminUser, $AADTenant
-if ($DisconnectedMode -eq "True") {
-    $installscript += @'
+        if ($DisconnectedMode -eq "True") {
+            $installscript += @'
 .\InstallAzureStackPOC.ps1 -AdminPassword $adminpass -TimeServer '129.6.15.28' -UseADFS
 '@ 
-} else {
-    $installscript += @'
+        }
+        else {
+            $installscript += @'
 .\InstallAzureStackPOC.ps1 -AdminPassword $adminpass -InfraAzureDirectoryTenantAdminCredential $aadcred -InfraAzureDirectoryTenantName $InfraAzureDirectoryTenantName -TimeServer '129.6.15.28'
 '@ 
-}
+        }
         $installscript | Out-File C:\CloudDeployment\InstallAzurestack.ps1 -Force
         if ($AADDelegatedAdminCredential) {
             $logininfo = @'
@@ -221,7 +221,8 @@ Tenant User:
 {3}
 
 '@ -f $AADAdminUser, $AADAdminPassword, $AADTenantUser, $AADTenantPassword, $AADDelegatedAdminUser, $AADDelegatedAdminPassword
-        } else {
+        }
+        else {
             $logininfo = @'
 Service Administrator:
 {0}
@@ -233,21 +234,21 @@ Tenant User:
 
 '@ -f $AADAdminUser, $AADAdminPassword, $AADTenantUser, $AADTenantPassword
         }
-if ($DisconnectedMode -eq "True") {
-    $logininfo = @'
+        if ($DisconnectedMode -eq "True") {
+            $logininfo = @'
 AZURESTACK\CloudAdmin
 <Password that you received in the email
 '@ 
         }
         $logininfo | Out-File C:\Users\Public\Desktop\AzureStackLoginInfo.txt -Force
         $WinLogonRegPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
-	    Set-ItemProperty $WinLogonRegPath "DefaultUsername" -Value "Administrator"
-	    Set-ItemProperty $WinLogonRegPath "DefaultPassword" -Value "$LocalAdminPassword"
-	    Set-ItemProperty $WinLogonRegPath "AutoAdminLogon" -Value "1"
+        Set-ItemProperty $WinLogonRegPath "DefaultUsername" -Value "Administrator"
+        Set-ItemProperty $WinLogonRegPath "DefaultPassword" -Value "$LocalAdminPassword"
+        Set-ItemProperty $WinLogonRegPath "AutoAdminLogon" -Value "1"
         Set-ItemProperty $WinLogonRegPath "AutoLogonCount" -Value "1"
         $RunOnceRegPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce"
         Set-ItemProperty $RunOnceRegPath "InstallAzureStack" -Value "powershell.exe -file C:\CloudDeployment\installazurestack.ps1 -WindowStyle Normal -NoLogo -NoProfile"
-        Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+        Set-NetFirewallProfile -Profile Domain, Public, Private -Enabled False
         Get-NetAdapter | Where-Object {$_.Status -eq "Disconnected"} | Disable-NetAdapter -Confirm:$false
         Get-NetAdapter | Where-Object {$_.LinkSpeed -eq '1 Gbps'} | Disable-NetAdapter -Confirm:$false
         $firstAdapter = Get-NetIPAddress | Where-Object {$_.IPv4Address -eq $serverIpAddress} | Select-Object -ExpandProperty InterfaceIndex
@@ -258,9 +259,8 @@ AZURESTACK\CloudAdmin
         Set-DnsClientServerAddress -InterfaceAlias "MAS_Uplink" -ServerAddresses 8.8.8.8 -Confirm:$false
         Start-Sleep -Seconds 300
         Rename-Computer -NewName AZS-HVN01 -Restart
-    } -ComputerName $serverIpAddress -Credential $LocalAdminCredential -ArgumentList $LocalAdminCredential,$AADAdminCredential,$AADDelegatedAdminCredential,$AADTenantCredential,$AADTenant,$serverIpAddress,$Gateway,$DisconnectedMode
+    } -ComputerName $serverIpAddress -Credential $LocalAdminCredential -ArgumentList $LocalAdminCredential, $AADAdminCredential, $AADDelegatedAdminCredential, $AADTenantCredential, $AADTenant, $serverIpAddress, $Gateway, $DisconnectedMode
 }
-
 function Watch-AzureStackInstall {
     [cmdletbinding()]
     param(
@@ -274,7 +274,8 @@ function Watch-AzureStackInstall {
             $session = $null
             try {
                 $session = New-PSSession -ComputerName $serverIpAddress -Credential $credential -ErrorAction SilentlyContinue
-            } catch {
+            }
+            catch {
                 if ($session) {
                     Write-LogMessage -Message " Caught exception after session to new OS was created: $_"
                     Remove-PSSession $session -ErrorAction SilentlyContinue
@@ -304,7 +305,7 @@ function Watch-AzureStackInstall {
                 } -Session $session -ErrorAction Stop
                 Write-LogMessage -Message "[$serverIpAddress] - The Azure Stack installation status is: $result"
                 Remove-PSSession $session -Confirm:$false -ErrorAction SilentlyContinue
-                if ($result -eq "Installed") {break;}
+                if ($result -eq "Installed") {break; }
                 if ($result -eq "Failed") {
                     #handle failed deployments
                     $failedDeployment = $true
@@ -328,7 +329,6 @@ function Watch-AzureStackInstall {
     }
     return $result
 }
-
 function Start-AzureStackHostConfiguration {
     param(
         [ipaddress]$serverIpAddress,
@@ -339,18 +339,17 @@ function Start-AzureStackHostConfiguration {
 
     Write-LogMessage -Message "[$serverIpAddress] - Configure Azure Stack host."
     Invoke-Command -ScriptBlock {
-    param(
-        [ipaddress]$serverIpAddress,
-        [pscredential]$LocalAdminCredential,
-        [pscredential]$AADAdminCredential,
-        [pscredential]$LABShareAdminCredential
-    )
+        param(
+            [ipaddress]$serverIpAddress,
+            [pscredential]$LocalAdminCredential,
+            [pscredential]$AADAdminCredential,
+            [pscredential]$LABShareAdminCredential
+        )
         #region Uninstall Azure Powershell
         Start-Process msiexec.exe -ArgumentList '/x "{3E92648F-29FD-4832-89A1-243C6B770445}" /quiet' -Wait -ErrorAction SilentlyContinue                
         Start-Process msiexec.exe -ArgumentList '/x "{386C337F-8F89-4530-A231-0FFFBDAB410D}" /quiet' -Wait -ErrorAction SilentlyContinue
         Start-Process msiexec.exe -ArgumentList '/x "{358A58BE-7B5E-4C13-BB01-7E29F6823249}" /quiet' -Wait -ErrorAction SilentlyContinue
         Start-Process msiexec.exe -ArgumentList '/x "{3BA7CAA9-97BA-4528-B7E1-B640910BB149}" /quiet' -Wait -ErrorAction SilentlyContinue
-
         
         #endregion
 
@@ -363,11 +362,12 @@ function Start-AzureStackHostConfiguration {
 
         #region Set Power Plan to High Performance
         Try {
-            $HighPerf = powercfg -l | ForEach-Object {if($_.contains("High performance")) {$_.split()[3]}}
+            $HighPerf = powercfg -l | ForEach-Object {if ($_.contains("High performance")) {$_.split()[3]}}
             $CurrPlan = $(powercfg -getactivescheme).split()[3]
             if ($CurrPlan -ne $HighPerf) {powercfg -setactive $HighPerf}
             #Write-LogMessage -Message "Power Plan set to High Performance." 
-        } Catch {
+        }
+        Catch {
             Write-Warning -Message "Unable to set power plan to high performance"
         }
 
@@ -412,8 +412,8 @@ function Start-AzureStackHostConfiguration {
 
         #region Disable realtime scanning (Defender)
         Set-MpPreference -DisableRealtimeMonitoring $true -DisableBehaviorMonitoring $true -DisablePrivacyMode $true -DisableIntrusionPreventionSystem $true `
-             -DisableScriptScanning $true -DisableArchiveScanning $true -DisableScanningMappedNetworkDrivesForFullScan $true -DisableIOAVProtection $true `
-             -DisableEmailScanning $true -DisableScanningNetworkFiles $true -DisableBlockAtFirstSeen $true -DisableAutoExclusions $true
+            -DisableScriptScanning $true -DisableArchiveScanning $true -DisableScanningMappedNetworkDrivesForFullScan $true -DisableIOAVProtection $true `
+            -DisableEmailScanning $true -DisableScanningNetworkFiles $true -DisableBlockAtFirstSeen $true -DisableAutoExclusions $true
         #Write-LogMessage -Message "Realtime scanning has been disabled."  
         #endregion
 
@@ -431,8 +431,8 @@ function Start-AzureStackHostConfiguration {
         $null = Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Scope CurrentUser -Force
         Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
         Install-Module -Name 'AzureRm.Bootstrapper' -Force
-        Install-AzureRmProfile -profile '2017-03-09-profile' -Force 
-        Install-Module -Name AzureStack -RequiredVersion 1.4.0 -Force
+        Install-AzureRmProfile -profile '2018-03-01-hybrid' -Force 
+        Install-Module -Name AzureStack -RequiredVersion 1.6.0 -Force
         Invoke-WebRequest -UseBasicParsing -Uri https://codeload.github.com/Azure/AzureStack-Tools/zip/master -OutFile "$env:TEMP\master.zip"
         Expand-Archive "$env:TEMP\master.zip" -DestinationPath C:\ -Force
         Remove-Item "$env:TEMP\master.zip"
@@ -478,7 +478,7 @@ function Start-AzureStackHostConfiguration {
         New-AzureRmResourceGroup -Name $RGName -Location $Location -Force
         $plan = New-AzsPlan -Name $PlanName -DisplayName $PlanName -Location $Location -ResourceGroupName $RGName -QuotaIds $QuotaIDs
         New-AzsOffer -Name $OfferName -DisplayName $OfferName -State Public -BasePlanIds $plan.Id -ResourceGroupName $RGName -Location $Location
-                #endregion
+        #endregion
 
         #region Adding default image Windows Server 2016
         $VHDPath = "D:\Training\Images\WindowsServer2016DatacenterwithGUI1806.vhd"
@@ -530,38 +530,39 @@ function ConfigureUser {
     )
     Write-Output "Retrieving AD credentals from SMA."
     $AdCred = Get-AutomationPSCredential -Name 'ADAdminCred'
-    $UserName = ("$FirstName.$LastName").Replace(" ","")
+    $UserName = ("$FirstName.$LastName").Replace(" ", "")
     Write-Output "Check if user exist."
     $aduser = Get-ADUser -filter "SAMAccountName -like ""$UserName"""
     if (!$aduser) {
         $userParams = @{
             AccountExpirationDate = ((Get-Date).AddDays($AmountOfDays + 1))
-            Name = $username
-            GivenName = $FirstName
-            SurName = $LastName
-            DisplayName = "$FirstName $LastName"
-            EmailAddress = $emailAddress
-            PasswordNeverExpires = 1 
-            cannotchangepassword = 1 
-            path = "OU=USR,OU=LAB,DC=AzureStack,DC=Lab" 
-            enabled = 1 
-            AccountPassword = (ConvertTo-SecureString -AsPlainText $Password -Force)
-            Description = "Azure Stack Lab Account"
-            Credential = $AdCred
+            Name                  = $username
+            GivenName             = $FirstName
+            SurName               = $LastName
+            DisplayName           = "$FirstName $LastName"
+            EmailAddress          = $emailAddress
+            PasswordNeverExpires  = 1 
+            cannotchangepassword  = 1 
+            path                  = "OU=USR,OU=LAB,DC=AzureStack,DC=Lab" 
+            enabled               = 1 
+            AccountPassword       = (ConvertTo-SecureString -AsPlainText $Password -Force)
+            Description           = "Azure Stack Lab Account"
+            Credential            = $AdCred
         }
         Write-Output "Creating AD user [$UserName]"
         New-ADUser @userParams
         Write-Output "Adding user [$UserName] to the Remote Desktop Gateway Group."
         Add-ADGroupMember -Identity "RDG_Users" -Members $UserName -Credential $AdCred
         Write-Output "Finished - User [$UserName] Created and added to RD Gateway Group."
-    } else {
+    }
+    else {
         Write-Output "Reset password for user [$UserName]"
         $userParams = @{
-            Identity = $adUser.Name
-            Credential = $AdCred
+            Identity    = $adUser.Name
+            Credential  = $AdCred
             NewPassword = ConvertTo-SecureString -AsPlainText $Password -Force
-            Reset = $true
-            Confirm = $false
+            Reset       = $true
+            Confirm     = $false
         }
         Set-ADAccountPassword @userParams
         $aduser | Set-ADUser -AccountExpirationDate ((Get-Date).AddDays($AmountOfDays + 1)) -Credential $AdCred
@@ -570,7 +571,7 @@ function ConfigureUser {
 }
 
 function Get-AlmostExpiredUsers {
-    $allUsers = Get-ADUser -Filter * -SearchBase "OU=LAB,DC=AzureStack,DC=Lab" -Properties @('AccountExpirationDate','mail')
+    $allUsers = Get-ADUser -Filter * -SearchBase "OU=LAB,DC=AzureStack,DC=Lab" -Properties @('AccountExpirationDate', 'mail')
     $expiredUsers = @()
     $allUsers | ForEach-Object -Process {
         $currentDate = Get-Date
@@ -583,7 +584,7 @@ function Get-AlmostExpiredUsers {
 }
 
 function Delete-ExpiredUsers {
-    $allUsers = Get-ADUser -Filter * -SearchBase "OU=LAB,DC=AzureStack,DC=Lab" -Properties @('AccountExpirationDate','mail')
+    $allUsers = Get-ADUser -Filter * -SearchBase "OU=LAB,DC=AzureStack,DC=Lab" -Properties @('AccountExpirationDate', 'mail')
     $expiredUsers = @()
     $allUsers | ForEach-Object -Process {
         $currentDate = Get-Date
@@ -612,7 +613,8 @@ function ResetServerPassword {
             net user Administrator $using:newPassword
             Write-Host "Password successful reset"
         } -ComputerName $serverIpAddress -ArgumentList $newPassword -Credential $serverCred
-    } catch {
+    }
+    catch {
         Write-Error $Error[0]
     }
 }
@@ -645,20 +647,20 @@ function Invoke-SqlCmd {
     return $result
 }
 
-$ascii=$NULL;
-For ($a=65;$a –le 90;$a++) {$ascii+=,[char][byte]$a }
-For ($a=48;$a –le 57;$a++) {$ascii+=,[char][byte]$a }
-For ($a=97;$a –le 122;$a++) {$ascii+=,[char][byte]$a }
+$ascii = $NULL;
+For ($a = 65; $a –le 90; $a++) {$ascii += , [char][byte]$a }
+For ($a = 48; $a –le 57; $a++) {$ascii += , [char][byte]$a }
+For ($a = 97; $a –le 122; $a++) {$ascii += , [char][byte]$a }
 Function Get-RandomPassword {
     Param(
-    [int]$length=8,
-    [string[]]$sourcedata = $ascii
+        [int]$length = 8,
+        [string[]]$sourcedata = $ascii
     )
 
-    For ($loop=1; $loop –le $length; $loop++) {
-                $TempPassword+=($sourcedata | GET-RANDOM)
-                }
+    For ($loop = 1; $loop –le $length; $loop++) {
+        $TempPassword += ($sourcedata | GET-RANDOM)
+    }
     return $TempPassword + '!'
 }
 
-Export-ModuleMember -Function Write-LogMessage, Reset-PhysicalNode, Wait-BaremetalDeployment, Start-InstallAzureStack, Watch-AzureStackInstall, Start-AzureStackHostConfiguration, Invoke-SqlCmd,ResetServerPassword,ConfigureUser,Get-RandomPassword,Get-AlmostExpiredUsers,Delete-ExpiredUsers
+Export-ModuleMember -Function Write-LogMessage, Reset-PhysicalNode, Wait-BaremetalDeployment, Start-InstallAzureStack, Watch-AzureStackInstall, Start-AzureStackHostConfiguration, Invoke-SqlCmd, ResetServerPassword, ConfigureUser, Get-RandomPassword, Get-AlmostExpiredUsers, Delete-ExpiredUsers

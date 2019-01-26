@@ -16,25 +16,25 @@ try {
 
     $paramsResetMasHost = @{
         iloIpAddress = $serverBMCIpAddress
-        iloCred = $bmcCred
+        iloCred      = $bmcCred
     }
     Reset-PhysicalNode @paramsResetMasHost
 
     $paramsWaitBareMetal = @{
         serverIpAddress = $serverIPAddress
-        credential = $serverCred
+        credential      = $serverCred
     }
     Wait-BaremetalDeployment @paramsWaitBareMetal
 
-    $UserName = ("$FirstName.$LastName").Replace(" ","")
+    $UserName = ("$FirstName.$LastName").Replace(" ", "")
     $password = Get-RandomPassword -length 8
 
     Write-Output "Configure user [$UserName]"
     $paramsNewUser = @{
-        FirstName = $FirstName
-        LastName = $LastName
+        FirstName    = $FirstName
+        LastName     = $LastName
         emailAddress = $Email
-        Password = $password
+        Password     = $password
         AmountOfDays = $AmountOfDays
     }
     ConfigureUser @paramsNewUser
@@ -42,8 +42,8 @@ try {
     Write-Output "Set password on server."
     $paramsResetPassword = @{
         serverIpAddress = $serverIPAddress
-        newPassword = $Password
-        serverCred = $serverCred
+        newPassword     = $Password
+        serverCred      = $serverCred
     }
     ResetServerPassword @paramsResetPassword 
 
@@ -57,19 +57,19 @@ try {
 
     Write-Output "Generating tempory RDP file."
     $rdpFile = Get-Content C:\Install\Scripts\MASLABHOST.rdp
-    $rdpFile = $rdpFile.Replace("[IPADDRESS]",$ServerIpAddress)
-    $rdpFile = $rdpFile.Replace("[GATEWAYURI]",$rdGatewayUrl)
+    $rdpFile = $rdpFile.Replace("[IPADDRESS]", $ServerIpAddress)
+    $rdpFile = $rdpFile.Replace("[GATEWAYURI]", $rdGatewayUrl)
     Set-Content C:\Install\Scripts\MASLAB-$UserName.rdp -Value $rdpFile -Force
     Write-Output "Sending login information + RDP to user [$UserName]."
     $mailParams = @{
-        To = "$FirstName $LastName <$Email>"
-        From = "$mailFromName <$mailFrom>"
-        Bcc = "$mailFromName <$mailFrom>"
-        SMTPServer = $mailServer
-        Credential = $mailCred 
-        Subject = "Azure Stack Lab login"
+        To          = "$FirstName $LastName <$Email>"
+        From        = "$mailFromName <$mailFrom>"
+        Bcc         = "$mailFromName <$mailFrom>"
+        SMTPServer  = $mailServer
+        Credential  = $mailCred 
+        Subject     = "Azure Stack Lab login"
         Attachments = "C:\Install\Scripts\MASLAB-$UserName.rdp"
-        Body= @"
+        Body        = @"
 Hi $FirstName,
 <br><br>
 Your account has been created / reset. You can use the attached RDP icon where the remote desktop gateway information is already supplied. Or if you use RDP tooling like RoyalTS or Devolutions RDM find here your information:
@@ -97,8 +97,8 @@ If you checked the "Azure Stack Pre-installed" checkbox during your request then
 <br>
 If your RDP icon attached to this mail is blocked, please log in to the website and connect using the "connect" button in your server details pane.
 "@
-        BodyAsHtml = $true
-        UseSsl = $true
+        BodyAsHtml  = $true
+        UseSsl      = $true
     }
     Send-MailMessage @mailParams
     Write-Output "Finished. Removing temp RDP file."
@@ -116,29 +116,31 @@ WHERE Servers.IpAddress=@serverIp
         $azuread = Invoke-SqlCmd -Database AzureStackLabDb -query $serverUpdateQuery
         if ($azuread) {
             Write-Output "Install AzureStack."
-            $AadAdminCred = New-Object pscredential ($($azuread.ServiceAdminUser),(ConvertTo-SecureString -AsPlainText -Force $($azuread.ServiceAdminPassword)))
-            $AadTenantCred = New-Object pscredential ($($azuread.TenantUser),(ConvertTo-SecureString -AsPlainText -Force $($azuread.TenantPassword)))
-            $serverCred = New-Object pscredential ("Administrator",(ConvertTo-SecureString -AsPlainText -Force $password))
+            $AadAdminCred = New-Object pscredential ($($azuread.ServiceAdminUser), (ConvertTo-SecureString -AsPlainText -Force $($azuread.ServiceAdminPassword)))
+            $AadTenantCred = New-Object pscredential ($($azuread.TenantUser), (ConvertTo-SecureString -AsPlainText -Force $($azuread.TenantPassword)))
+            $serverCred = New-Object pscredential ("Administrator", (ConvertTo-SecureString -AsPlainText -Force $password))
             $paramsMASInstall = @{
-                serverIpAddress = $serverIPAddress
+                serverIpAddress      = $serverIPAddress
                 LocalAdminCredential = $serverCred
-                AADAdminCredential = $AadAdminCred
-                AADTenantCredential = $AadTenantCred
-                AADTenant = $azuread.TenantName
-                DisconnectedMode = $DisconnectedMode
+                AADAdminCredential   = $AadAdminCred
+                AADTenantCredential  = $AadTenantCred
+                AADTenant            = $azuread.TenantName
+                DisconnectedMode     = $DisconnectedMode
             }
             Start-InstallAzureStack @paramsMASInstall
 
             $paramsWatchMASInstall = @{
                 serverIpAddress = $serverIPAddress
-                credential = $serverCred
+                credential      = $serverCred
             }
             Watch-AzureStackInstall @paramsWatchMASInstall
-        } else {
+        }
+        else {
             Write-Error "Cannot obtain Azure AD information"
         }
     }
     Write-Output "Finished runbook Reset and assign server"
-} catch {
+}
+catch {
     Write-Error $Error[0]
 }

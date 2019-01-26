@@ -26,13 +26,13 @@ $mailServer = Get-AutomationVariable -Name "MailServer"
 $mailFrom = Get-AutomationVariable -Name "SendGridMailFrom"
 $mailFromName = Get-AutomationVariable -Name "SendGridMailFromName"
 $mailParams = @{
-    To = "$FirstName $LastName <$Email>"
-    From = "$mailFromName <$mailFrom>"
-    Bcc = "$mailFromName <$mailFrom>"
+    To         = "$FirstName $LastName <$Email>"
+    From       = "$mailFromName <$mailFrom>"
+    Bcc        = "$mailFromName <$mailFrom>"
     SMTPServer = $mailServer
     Credential = $mailCred 
-    Subject = "Azure Stack Portal login"
-    Body= @"
+    Subject    = "Azure Stack Portal login"
+    Body       = @"
     Hi $FirstName,
     <br><br>
     Your account has been created.
@@ -50,7 +50,7 @@ $mailParams = @{
     <br><br>
 "@
     BodyAsHtml = $true
-    UseSsl = $true
+    UseSsl     = $true
 }
 Send-MailMessage @mailParams
 

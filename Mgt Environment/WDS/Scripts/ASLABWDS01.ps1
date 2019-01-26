@@ -7,15 +7,16 @@ Set-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\DHCPServer\Parameters D
 $dhcpService | Restart-Service -WarningAction SilentlyContinue
 Set-DhcpServerSetting -ConflictDetectionAttempts 2
 if ((Get-DhcpServerSetting).IsAuthorized) {
-} else {
+}
+else {
 }
 
 Get-DhcpServerv4Scope | Remove-DhcpServerv4Scope -Force -Confirm:$false
 
 $dhcpScope = @{
-    Name = "WDS MASLAB"
+    Name       = "WDS MASLAB"
     StartRange = "10.31.231.100"
-    EndRange = "10.31.231.199"
+    EndRange   = "10.31.231.199"
     SubnetMask = "255.255.255.0"
 }
 
@@ -45,11 +46,12 @@ if ($wdsstate -match $PropertyPattern) {
 
 if ($wdsOperationalMode -ne 'Not Configured') {
     $null = wdsutil /verbose /Uninitialize-Server
-} else {
+}
+else {
 }
 
 if (Test-Path $WDSRemInstallFolder) {
-    rmdir $WDSRemInstallFolder -Recurse -Force
+    Remove-Item $WDSRemInstallFolder -Recurse -Force
 }
 
 $null = wdsutil /verbose /Initialize-Server /RemInst:$WDSRemInstallFolder /Standalone
@@ -58,17 +60,17 @@ $null = wdsutil /verbose /Set-Server /AnswerClients:All /PxePromptPolicy /Known:
 $null = wdsutil /verbose /Set-Server /DHCPOption60:Yes
 
 $NewWDSToolkitScript = Get-Content C:\DeployAzureStack\Scripts\DeployAzureStackPOC.ps1 -Raw
-$NewWDSToolkitScript = $NewWDSToolkitScript.Replace('[DVMIP]','<WDS-IP>')
-$NewWDSToolkitScript = $NewWDSToolkitScript.Replace('[DVMUserName]','AZURESTACK\maswds')
-$NewWDSToolkitScript = $NewWDSToolkitScript.Replace('[DVMPassword]','<PASSWORD>')
+$NewWDSToolkitScript = $NewWDSToolkitScript.Replace('[DVMIP]', '<WDS-IP>')
+$NewWDSToolkitScript = $NewWDSToolkitScript.Replace('[DVMUserName]', 'AZURESTACK\maswds')
+$NewWDSToolkitScript = $NewWDSToolkitScript.Replace('[DVMPassword]', '<PASSWORD>')
 
-$bootImagePath =  "$env:SystemDrive:\DeployAzureStack\BootImage\boot.wim"
+$bootImagePath = "$env:SystemDrive:\DeployAzureStack\BootImage\boot.wim"
 $mountPath = [IO.Path]::GetTempFileName()
 Remove-Item $mountPath -Recurse -Force
 $null = mkdir $mountPath -Force
 $mountedImages = Get-WindowsImage -Mounted -Verbose:$false
 if ($mountedImages) {
-    $null = $mountedImages | % { Dismount-WindowsImage -Path $_.MountPath -Discard -Verbose:$false}
+    $null = $mountedImages | ForEach-Object { Dismount-WindowsImage -Path $_.MountPath -Discard -Verbose:$false}
 }
 $null = Mount-WindowsImage -Index 1 -ImagePath $bootImagePath -Path $mountPath -Verbose:$false
 Set-Content -Value $NewWDSToolkitScript -Path "$mountPath\DeployAzureStackPOC.ps1" -Force 

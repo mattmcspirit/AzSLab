@@ -1,12 +1,11 @@
 ﻿Install-WindowsFeature AD-Domain-Services -IncludeManagementTools
 Install-ADDSForest -DomainName AzureStack.Lab -DomainNetbiosName AZURESTACK
 
-$Domain = Get-ADDomain | Select -ExpandProperty Forest
+$Domain = Get-ADDomain | Select-Object -ExpandProperty Forest
 Enable-ADOptionalFeature "Recycle Bin Feature" -Scope ForestOrConfigurationSet -Target $Domain -Confirm:$false
 $Domainpiece = $Domain.Split(".")
 $dc = ""
-foreach ($piece in $Domainpiece)
-{
+foreach ($piece in $Domainpiece) {
     $dc += "DC=$piece,"
 }
 $dc = $dc.TrimEnd(",")
