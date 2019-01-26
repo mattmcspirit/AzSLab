@@ -91,21 +91,19 @@ Remove-SmaRunbook -id $runbook.RunbookID -WebServiceEndpoint $smaEP
 $runbook = Get-SmaRunbook -Name "MASLAB_HostConfig" -WebServiceEndpoint $smaEP
 Remove-SmaRunbook -id $runbook.RunbookID -WebServiceEndpoint $smaEP
 
-
 #Runbook retrieval commands
-Get-SmaRunbook -WebServiceEndpoint $smaEP | select runbookname
+Get-SmaRunbook -WebServiceEndpoint $smaEP | Select-Object-Object runbookname
 Get-SmaRunbook -Id $runbook.RunbookID -WebServiceEndpoint $smaEP
-Get-SmaRunbook -WebServiceEndpoint $smaEP | select RunbookName
+Get-SmaRunbook -WebServiceEndpoint $smaEP | Select-Object RunbookName
 
 #interact with a running job
-Get-SmaJob -WebServiceEndpoint $smaEP | sort starttime| Select JobID, JobStatus,starttime, endTime #-Last 1
+Get-SmaJob -WebServiceEndpoint $smaEP | Sort-Object starttime| Select-Object JobID, JobStatus, starttime, endTime #-Last 1
 $job = "e18496b6-89e5-4b47-a4c5-ecc0d5588e69"
 Get-SmaJob -Id $job -WebServiceEndpoint $smaEP
 #Stop-SmaJob -Id $job -WebServiceEndpoint $smaEP
 #Resume-SmaJob -Id $job -WebServiceEndpoint $smaEP
 Get-SmaJobOutput -WebServiceEndpoint $smaEP -Id $job -Stream Any
 (Get-SmaJobOutput -WebServiceEndpoint $smaEP -Id $job -Stream Any).StreamText | more
-
 
 #Start a runbook
 $runbook = Get-SmaRunbook -Name "Task_HandleExpiredServers" -WebServiceEndpoint $smaEP
@@ -121,13 +119,13 @@ Get-SmaJob -Id $job -WebServiceEndpoint $smaEP
 
 #Start a runbook
 $runbook = Get-SmaRunbook -Name "ResetMASNode" -WebServiceEndpoint $smaEP
-$job = Start-SmaRunbook -Id $runbook.RunbookID -WebServiceEndpoint $smaEP -Parameters @{"serverBMCIpAddress"="10.1.251.47"}
+$job = Start-SmaRunbook -Id $runbook.RunbookID -WebServiceEndpoint $smaEP -Parameters @{"serverBMCIpAddress" = "10.1.251.47"}
 Get-SmaJob -Id $job -WebServiceEndpoint $smaEP
 Get-SmaJobOutput -WebServiceEndpoint $smaEP -Id $job -Stream Output
 
 #Start a runbook
 $runbook = Get-SmaRunbook -Name "NewUser" -WebServiceEndpoint $smaEP
-$job = Start-SmaRunbook -Id $runbook.RunbookID -WebServiceEndpoint $smaEP -Parameters @{"FirstName"="Mark";"LastName"="Scholman";"UserName"="mark.scholman";"emailAddress"="mark@markscholman.com";"ServerIpAddress"="10.1.101.101"}
+$job = Start-SmaRunbook -Id $runbook.RunbookID -WebServiceEndpoint $smaEP -Parameters @{"FirstName" = "Mark"; "LastName" = "Scholman"; "UserName" = "mark.scholman"; "emailAddress" = "mark@markscholman.com"; "ServerIpAddress" = "10.1.101.101"}
 Get-SmaJob -Id $job -WebServiceEndpoint $smaEP
 Get-SmaJobOutput -WebServiceEndpoint $smaEP -Id $job -Stream Output
 
@@ -141,7 +139,6 @@ help Set-SmaSchedule -Examples | Out-GridView
 $schedule = Set-SmaSchedule -WebServiceEndpoint $smaEP -Name DailyServerReset -ScheduleType DailySchedule -StartTime "5/21/2016 5:00:00 AM" -ExpiryTime "12/30/9999 11:00:00 PM" -DayInterval 1
 $runbook = Get-SmaRunbook -Name "Task_HandleExpiredServers" -WebServiceEndpoint $smaEP
 Start-SmaRunbook -Id $runbook.RunbookID -ScheduleName $schedule.Name -WebServiceEndpoint $smaEP
-
 
 #Start SMA Runbook on the schedule
 $schedule = Set-SmaSchedule -WebServiceEndpoint $smaEP -Name DailyAccountManagement -ScheduleType DailySchedule -StartTime "5/21/2016 1:00:00 AM" -ExpiryTime "12/30/9999 11:00:00 PM" -DayInterval 1
